@@ -92,7 +92,7 @@ $ su - victor
 
 Second:
 
-```bash
+```sql
 $ psql
 ``` 
 
@@ -100,7 +100,7 @@ $ psql
 
 Execute:
 
-```bash
+```sql
 psql -d mypgdatabase -U mypguser
 ```
 
@@ -110,7 +110,7 @@ If you want next erros:
 psql: FATAL:  Ident authentication failed for user "mypguser"
 ```
 
-edit pg_hba.conf in /etc/postgresql/X.Y/main/pg_hba.conf:
+edit ```pg_hba.conf``` in /etc/postgresql/X.Y/main/```pg_hba.conf```:
 
 ```bash
 local   all         all                               trust     # replace ident or peer with trust
@@ -121,6 +121,65 @@ reload postgresql
 ```bash
 $ /etc/init.d/postgresql reload
 ```
+
+### Configure postgres to allow connection from other hosts
+
+1. Enable the ```listen_addresses```:
+
+In the file  /etc/postgresql/X.Y/main/```postgresql.conf``` Verify that it is equal to:
+
+If you have it like that
+
+```bash
+#listen_addresses = 'localhost'         # what IP address(es) to listen on;
+```
+
+change for:
+
+```bash
+listen_addresses = '*'          # what IP address(es) to listen on;
+```
+
+And the port:
+
+```
+port = 5432
+```
+
+2. In the file /etc/postgresql/9.4/main/```pg_hba.conf```:
+
+Config like this:
+
+```bash
+# Database administrative login by Unix domain socket
+local   all             postgres                                trust
+
+# TYPE  DATABASE        USER            ADDRESS                 METHOD
+
+# "local" is for Unix domain socket connections only
+local   all             all                                     trust
+# IPv4 local connections:
+host    all             all            0.0.0.0 0.0.0.0            md5
+# IPv6 local connections:
+host    all             all             ::1/128                 md5
+# Allow replication connections from localhost, by a user with the
+# replication privilege.
+#local   replication     postgres                                peer
+#host    replication     postgres        127.0.0.1/32            md5
+#host    replication     postgres        ::1/128                 md5
+``` 
+
+3. Reload postgres or restart:
+
+```bash
+$ /etc/ininit/postgres reload
+```
+
+or 
+
+```bash
+$ /etc/init.d/postgres restart
+``` 
 
 
 ### Install graphical mode  to Postgres
@@ -134,9 +193,68 @@ sudo apt install pgadmin3
 ### How to connect to a remote database
 
 ```bash
-psql -h <host> -p <port> -u <database>
+psql -h <host> -p <port> -U <username> -d <database>
 psql -h <host> -p <port> -U <username> -W <password> <database>
 ``` 
+
+### Export DATABASE
+
+Execute:
+
+```sql
+pg_dump -C -U <username> -W -h <host> <name_database> > <name_database>.sql
+```
+
+#### Params to Export:
+
+* -C: Data is always restored into the database name that appears in the dump file.
+
+* -U: User.
+
+* -w: To ask the password.
+
+* -h: PostgreSQL server to which we connect to import our dump.
+
+* > dump_base.sql: We indicate which is the path and name of our database.
+
+
+### Import DATABASE
+
+
+#### IMPORT WITH psql
+If in the export you did not pass the parameter ```-C``` you have that created of database:
+
+```sql
+CREATE DATABASE <name_database> ENCODING 'UTF8' TEMPLATE template0 LC_COLLATE 'es_VE.UTF-8' LC_CTYPE 'es_VE.UTF-8';
+```
+Next import database:
+
+```sql
+psql -U postgres -W -h localhost name_bd < dump_base.sql
+```
+
+#### Parameters to import
+
+* -U: User.
+
+* -w: To ask the password.
+
+* -h: PostgreSQL server to which we connect to import our dump.
+
+* < dump_base.sql: We indicate which is the file that contains the dump of the database.
+
+
+####  IMPORT WITH pg_restore
+
+```sql
+pg_restore -U <user_name> -h <host> -d <database> -v <path_of_dump.sql>
+```
+
+#### Next params:
+
+* -v: Verbose (see out of each process).
+
+*  <path_of_dump.sql>: Path where dump.sql is located.
 
 
 ### Sources
